@@ -18,8 +18,8 @@ const EVM = {
         if (opfunc === null) {
             return "opcode {" + opcode.toString(16) + "} has not been implemented yet"
         }
-        if (this.debug & DEBUG_STACK === DEBUG_STACK) console.log("stack info: \n" + this.stackInfo());
-        if (this.debug & DEBUG_MEMORY === DEBUG_MEMORY) console.log("memory info: \n" + ToHexString(this.memory.data));
+        if ((this.debug & DEBUG_STACK) === DEBUG_STACK) console.log("stack info: \n" + this.stackInfo());
+        if ((this.debug & DEBUG_MEMORY) === DEBUG_MEMORY) console.log("memory info: \n" + ToHexString(this.memory.data));
         return opfunc(this);
     },
     forward: function(debug = 0, breakpoint = -1) {
@@ -35,8 +35,8 @@ const EVM = {
             if (this.debug > 0 && this.pc === breakpoint) {
                 this.status = "paused";
                 console.log("break point: " + breakpoint, EVM);
-                if (this.debug & DEBUG_STACK === DEBUG_STACK) console.log("stack info: \n" + this.stackInfo());
-                if (this.debug & DEBUG_MEMORY === DEBUG_MEMORY) console.log("memory info: \n" + ToHexString(this.memory.data));
+                if ((this.debug & DEBUG_STACK) === DEBUG_STACK) console.log("stack info: \n" + this.stackInfo());
+                if ((this.debug & DEBUG_MEMORY) === DEBUG_MEMORY) console.log("memory info: \n" + ToHexString(this.memory.data));
                 return { status: -1, message: "paused" };
             }
             var opcode = this.bytecode[this.pc];
@@ -107,7 +107,7 @@ function Memory(evm) {
         touch: function(offset) {
             var size = Math.ceil((offset + 32) / 32) * 32;
             if (this.data.length < size) {
-                if (evm.debug & DEBUG_MEMORY === DEBUG_MEMORY) console.log("memory expand to: ", size)
+                if ((evm.debug & DEBUG_MEMORY) === DEBUG_MEMORY) console.log("memory expand to: ", size)
                 var _data  = new Uint8Array(size);
                 for (let i = 0; i < this.data.length; i++) {
                     _data[i] = this.data[i];
@@ -116,12 +116,12 @@ function Memory(evm) {
             }
         },
         read: function(offset) {
-             if (evm.debug & DEBUG_MEMORY === DEBUG_MEMORY) console.log("memory read at: ", offset, offset.toString(16));
+             if ((evm.debug & DEBUG_MEMORY) === DEBUG_MEMORY) console.log("memory read at: ", offset, offset.toString(16));
             this.touch(offset);
             return this.data.slice(offset, offset + 32);
         },
         write: function(offset, value, byte = false) {
-             if (evm.debug & DEBUG_MEMORY === DEBUG_MEMORY) console.log("memory write to: ", offset, offset.toString(16), value);
+             if ((evm.debug & DEBUG_MEMORY) === DEBUG_MEMORY) console.log("memory write to: ", offset, offset.toString(16), value);
             this.touch(offset);
             if (byte) {
                 this.data[offset] = value;
