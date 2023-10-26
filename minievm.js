@@ -29,7 +29,7 @@ const EVM = {
         return opfunc(this);
     },
 
-    forward: function(debug = 0, breakpoint = -1) {
+    forward: function(debug = DEBUG_OFF, breakpoint = -1) {
         if (this.status !== "running" && this.status !== "paused") return { status: -1, message: "no program running" };
 
         this.debug = debug;
@@ -73,7 +73,7 @@ const EVM = {
         return result;
     },
 
-    execute: function(transaction, debug = 0, breakpoint = -1) {
+    execute: function(transaction, debug = DEBUG_OFF, breakpoint = -1) {
         this.status = "running";
 
         this.tx = { origin: transaction.from, to: transaction.to };
