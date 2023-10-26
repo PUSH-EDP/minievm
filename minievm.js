@@ -11,21 +11,28 @@ const EVM = {
     status: "idle",
     debug: DEBUG_OFF,
     state: WORLD_STATE,
+
     step: function(debug = DEBUG_OFF) {
+        if (this.status !== "running" && this.status !== "paused") return { status: -1, message: "no program running" };
+
         this.debug = debug;
+
         var opcode = this.bytecode[this.pc];
         var opfunc = OPCODE_FUNC[opcode] ?? null;
         if (opfunc === null) {
             return "opcode {" + opcode.toString(16) + "} has not been implemented yet"
         }
+
         if ((this.debug & DEBUG_STACK) === DEBUG_STACK) console.log("stack info: \n" + this.stackInfo());
         if ((this.debug & DEBUG_MEMORY) === DEBUG_MEMORY) console.log("memory info: \n" + ToHexString(this.memory.data));
+
         return opfunc(this);
     },
-    forward: function(debug = 0, breakpoint = -1) {
-        this.debug = debug;
 
+    forward: function(debug = 0, breakpoint = -1) {
         if (this.status !== "running" && this.status !== "paused") return { status: -1, message: "no program running" };
+
+        this.debug = debug;
 
         if (this.status === "paused") this.status = "running";
 
@@ -65,6 +72,7 @@ const EVM = {
 
         return result;
     },
+
     execute: function(transaction, debug = 0, breakpoint = -1) {
         this.status = "running";
 
@@ -87,6 +95,7 @@ const EVM = {
         return this.forward(debug, breakpoint);
 
     },
+
     stackInfo: function() {
         return Array.from(this.stack.data).reverse().reduce((str, value) => (str += ToHexString(value) + "\n"), "");
     }
@@ -116,12 +125,12 @@ function Memory(evm) {
             }
         },
         read: function(offset) {
-             if ((evm.debug & DEBUG_MEMORY) === DEBUG_MEMORY) console.log("memory read at: ", offset, offset.toString(16));
+            if ((evm.debug & DEBUG_MEMORY) === DEBUG_MEMORY) console.log("memory read at: ", offset, offset.toString(16));
             this.touch(offset);
             return this.data.slice(offset, offset + 32);
         },
         write: function(offset, value, byte = false) {
-             if ((evm.debug & DEBUG_MEMORY) === DEBUG_MEMORY) console.log("memory write to: ", offset, offset.toString(16), value);
+            if ((evm.debug & DEBUG_MEMORY) === DEBUG_MEMORY) console.log("memory write to: ", offset, offset.toString(16), value);
             this.touch(offset);
             if (byte) {
                 this.data[offset] = value;
