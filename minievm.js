@@ -1,23 +1,29 @@
 const WORLD_STATE = { "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4": { nonce: 1, balance: 1000000n, code: null} };
+
 const OPCODE_FUNC = OpFunc();
 
-var DEBUG = 0;
+const DEBUG_ALL = 0xff;
+const DEBUG_OFF = 0x00;
+const DEBUG_STACK = 0x01;
+const DEBUG_MEMORY = 0x02;
 
 const EVM = {
     status: "idle",
+    debug: DEBUG_OFF,
     state: WORLD_STATE,
-    step: function(debug = 0) {
-        DEBUG = debug;
+    step: function(debug = DEBUG_OFF) {
+        this.debug = debug;
         var opcode = this.bytecode[this.pc];
         var opfunc = OPCODE_FUNC[opcode] ?? null;
         if (opfunc === null) {
             return "opcode {" + opcode.toString(16) + "} has not been implemented yet"
         }
-        if (DEBUG > 0) console.log("stack info: " + this.stackInfo());
+        if (this.debug & DEBUG_STACK === DEBUG_STACK) console.log("stack info: \n" + this.stackInfo());
+        if (this.debug & DEBUG_MEMORY === DEBUG_MEMORY) console.log("memory info: \n" + ToHexString(this.memory.data));
         return opfunc(this);
     },
     forward: function(debug = 0, breakpoint = -1) {
-        DEBUG = debug;
+        this.debug = debug;
 
         if (this.status !== "running" && this.status !== "paused") return { status: -1, message: "no program running" };
 
@@ -26,10 +32,11 @@ const EVM = {
         var result = { status: 0, message: "" };
 
         while (result.status === 0) {
-            if (DEBUG > 0 && this.pc === breakpoint) {
+            if (this.debug > 0 && this.pc === breakpoint) {
                 this.status = "paused";
                 console.log("break point: " + breakpoint, EVM);
-                console.log("stack info: " + this.stackInfo());
+                if (this.debug & DEBUG_STACK === DEBUG_STACK) console.log("stack info: \n" + this.stackInfo());
+                if (this.debug & DEBUG_MEMORY === DEBUG_MEMORY) console.log("memory info: \n" + ToHexString(this.memory.data));
                 return { status: -1, message: "paused" };
             }
             var opcode = this.bytecode[this.pc];
@@ -44,16 +51,16 @@ const EVM = {
 
         if (result.status === 1) {
             if (this.tx.to === null) {
-                WORLD_STATE[this.address] = {
+                this.state[this.address] = {
                     nonce: 1,
                     balance: 0,
                     code: result.bytes,
                     storage: {}
                 }
-                WORLD_STATE[this.tx.origin].nonce += 1
+                this.state[this.tx.origin].nonce += 1
             }
         }
-        
+
         this.status = "idle";
 
         return result;
@@ -64,14 +71,14 @@ const EVM = {
         this.tx = { origin: transaction.from, to: transaction.to };
         this.msg = { sender: transaction.from, value: transaction.value };
         this.pc = 0;
-        this.stack = Stack();
-        this.memory = Memory();
+        this.stack = Stack(this);
+        this.memory = Memory(this);
         this.address = transaction.to;
         this.calldata = FromHexString(transaction.data);
-        this.bytecode = transaction.to === null ? FromHexString(transaction.data) : WORLD_STATE[transaction.to].code;
+        this.bytecode = transaction.to === null ? FromHexString(transaction.data) : this.state[transaction.to].code;
 
         if (this.address === null) {
-            var nonce = "0x" + WORLD_STATE[this.tx.origin].nonce.toString(16);
+            var nonce = "0x" + this.state[this.tx.origin].nonce.toString(16);
             var hashSource = RLP.encode([this.tx.origin, nonce]);
             var hashBytes = keccak256([ ...hashSource ]);
             this.address = ToHexString(hashBytes.slice(12));
@@ -81,12 +88,11 @@ const EVM = {
 
     },
     stackInfo: function() {
-        var info = Array.from(this.stack.data);
-        return info.reverse().reduce((str, value) => (str += ToHexString(value) + "\n"), "\n");
+        return Array.from(this.stack.data).reverse().reduce((str, value) => (str += ToHexString(value) + "\n"), "");
     }
 };
 
-function Stack() {
+function Stack(evm) {
     return {
         data: new Array(),
         push: function(value) { this.data.push(value) },
@@ -95,13 +101,13 @@ function Stack() {
     }
 }
 
-function Memory() {
+function Memory(evm) {
     return {
         data: new Uint8Array(),
         touch: function(offset) {
             var size = Math.ceil((offset + 32) / 32) * 32;
             if (this.data.length < size) {
-                if (DEBUG === 1) console.log("memory expand to: ", size)
+                if (evm.debug & DEBUG_MEMORY === DEBUG_MEMORY) console.log("memory expand to: ", size)
                 var _data  = new Uint8Array(size);
                 for (let i = 0; i < this.data.length; i++) {
                     _data[i] = this.data[i];
@@ -110,12 +116,12 @@ function Memory() {
             }
         },
         read: function(offset) {
-            if (DEBUG === 1) console.log("memory read at: ", offset, offset.toString(16));
+             if (evm.debug & DEBUG_MEMORY === DEBUG_MEMORY) console.log("memory read at: ", offset, offset.toString(16));
             this.touch(offset);
             return this.data.slice(offset, offset + 32);
         },
         write: function(offset, value, byte = false) {
-            if (DEBUG === 1) console.log("memory write to: ", offset, offset.toString(16), value);
+             if (evm.debug & DEBUG_MEMORY === DEBUG_MEMORY) console.log("memory write to: ", offset, offset.toString(16), value);
             this.touch(offset);
             if (byte) {
                 this.data[offset] = value;
