@@ -14,6 +14,28 @@
         <script src="./minievm.js"></script>
         <script type="text/javascript">
         //测试用例
+        /*
+            // SPDX-License-Identifier: MIT
+            pragma solidity ^0.8.3;
+
+            contract Test {
+                uint public count;
+
+                function get(uint256 i) public pure returns (bytes32) {
+                    return keccak256(abi.encodePacked(i));
+                }
+
+                // Function to increment count by 1
+                function inc() public {
+                    count += 1;
+                }
+
+                // Function to decrement count by 1
+                function dec() public {
+                    count -= 1;
+                }
+            }
+        */
         var transaction = {
             nonce: 1,
             from: "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
