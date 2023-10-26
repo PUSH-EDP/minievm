@@ -1,5 +1,4 @@
 const WORLD_STATE = { "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4": { nonce: 1, balance: 1000000n, code: null} };
-const WORLD_STORAGE = {};
 const OPCODE_FUNC = OpFunc();
 
 var DEBUG = 0;
@@ -7,7 +6,6 @@ var DEBUG = 0;
 const EVM = {
     status: "idle",
     state: WORLD_STATE,
-    storage: WORLD_STORAGE,
     step: function(debug = 0) {
         DEBUG = debug;
         var opcode = this.bytecode[this.pc];
@@ -49,9 +47,9 @@ const EVM = {
                 WORLD_STATE[this.address] = {
                     nonce: 1,
                     balance: 0,
-                    code: result.bytes
+                    code: result.bytes,
+                    storage: {}
                 }
-                WORLD_STORAGE[this.address] = {};
                 WORLD_STATE[this.tx.origin].nonce += 1
             }
         }
